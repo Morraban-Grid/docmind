@@ -1,0 +1,72 @@
+services:
+
+  go-service:
+    build: ./go-service
+    container_name: docmind-go
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    networks:
+      - docmind-network
+
+  rag-service:
+    build: ./rag-service
+    container_name: docmind-rag
+    ports:
+      - "8000:8000"
+    depends_on:
+      - qdrant
+    env_file:
+      - .env
+    networks:
+      - docmind-network
+
+  postgres:
+    image: postgres:16
+    container_name: docmind-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - docmind-network
+
+  qdrant:
+    image: qdrant/qdrant
+    container_name: docmind-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    networks:
+      - docmind-network
+
+  minio:
+    image: minio/minio
+    container_name: docmind-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - docmind-network
+
+volumes:
+  postgres_data:
+  minio_data:
+
+networks:
+  docmind-network:
+    driver: bridge
