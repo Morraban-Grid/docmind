@@ -1,0 +1,23 @@
+# Environment
+.env
+.env.*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.poetry/
+
+# Go
+bin/
+vendor/
+
+# Docker
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
