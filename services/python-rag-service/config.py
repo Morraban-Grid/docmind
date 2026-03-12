@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     EMBEDDING_DIMENSION: int = 384
     EMBEDDING_BATCH_SIZE: int = 32
     
+    # gRPC Server
+    GRPC_HOST: str = "0.0.0.0"
+    GRPC_PORT: int = 50051
+    
     # Logging
     LOG_LEVEL: str = "INFO"
     

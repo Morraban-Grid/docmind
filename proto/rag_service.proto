@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package docmind.rag;
+
+option go_package = "github.com/Morraban-Grid/docmind/services/go-user-service/internal/grpc_client/pb";
+option python_package = "docmind.rag.pb2";
+
+// IndexDocumentRequest - Request to index a document
+message IndexDocumentRequest {
+  string document_id = 1;
+  string user_id = 2;
+  string file_path = 3;
+  string file_type = 4;
+}
+
+// IndexDocumentResponse - Response from document indexing
+message IndexDocumentResponse {
+  bool success = 1;
+  int32 chunk_count = 2;
+  int32 embedding_count = 3;
+  string error_message = 4;
+}
+
+// DeleteDocumentRequest - Request to delete document embeddings
+message DeleteDocumentRequest {
+  string document_id = 1;
+}
+
+// DeleteDocumentResponse - Response from document deletion
+message DeleteDocumentResponse {
+  bool success = 1;
+  int32 deleted_count = 2;
+  string error_message = 3;
+}
+
+// QueryDocumentRequest - Request to query documents
+message QueryDocumentRequest {
+  string query = 1;
+  string user_id = 2;
+}
+
+// QueryDocumentResponse - Response from document query
+message QueryDocumentResponse {
+  string answer = 1;
+  repeated string sources = 2;
+  int32 chunk_count = 3;
+  string error_message = 4;
+}
+
+// RAGService - gRPC service for RAG operations
+service RAGService {
+  // IndexDocument - Index a document for RAG
+  rpc IndexDocument(IndexDocumentRequest) returns (IndexDocumentResponse);
+  
+  // DeleteDocument - Delete document embeddings
+  rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse);
+  
+  // QueryDocument - Query documents using RAG
+  rpc QueryDocument(QueryDocumentRequest) returns (QueryDocumentResponse);
+}
