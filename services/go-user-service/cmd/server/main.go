@@ -10,6 +10,7 @@ import (
 	"github.com/Morraban-Grid/docmind/services/go-user-service/internal/middleware"
 	"github.com/Morraban-Grid/docmind/services/go-user-service/internal/repository/postgres"
 	"github.com/Morraban-Grid/docmind/services/go-user-service/internal/service"
+	"github.com/Morraban-Grid/docmind/services/go-user-service/internal/grpc_client"
 	"github.com/gin-gonic/gin"
 )
 
@@ -42,6 +43,16 @@ func main() {
 		log.Fatalf("Failed to initialize MinIO client: %v", err)
 	}
 
+	// Initialize gRPC client for RAG service
+	ragClient, err := grpc_client.NewRAGClient(
+		os.Getenv("PYTHON_GRPC_HOST"),
+		os.Getenv("PYTHON_GRPC_PORT"),
+	)
+	if err != nil {
+		log.Fatalf("Failed to initialize gRPC client: %v", err)
+	}
+	defer ragClient.Close()
+
 	// Initialize repositories
 	userRepo := postgres.NewUserRepository(db)
 	documentRepo := postgres.NewDocumentRepository(db)
@@ -58,6 +69,7 @@ func main() {
 	authHandler := httphandler.NewAuthHandler(authService)
 	userHandler := httphandler.NewUserHandler(userService)
 	documentHandler := httphandler.NewDocumentHandler(documentService)
+	queryHandler := httphandler.NewQueryHandler(ragClient)
 	healthHandler := httphandler.NewHealthHandler()
 
 	// Setup router
@@ -95,6 +107,13 @@ func main() {
 		documents.GET("/:id", documentHandler.GetDocument)
 		documents.GET("/:id/download", documentHandler.DownloadDocument)
 		documents.DELETE("/:id", documentHandler.DeleteDocument)
+	}
+
+	// Query routes (protected)
+	query := router.Group("/api/query")
+	query.Use(middleware.AuthMiddleware(jwtManager))
+	{
+		query.POST("", queryHandler.QueryDocuments)
 	}
 
 	// Start server

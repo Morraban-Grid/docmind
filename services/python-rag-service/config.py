@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     GRPC_HOST: str = "0.0.0.0"
     GRPC_PORT: int = 50051
     
+    # Ollama LLM
+    OLLAMA_HOST: str = "localhost"
+    OLLAMA_PORT: int = 11434
+    
     # Logging
     LOG_LEVEL: str = "INFO"
     

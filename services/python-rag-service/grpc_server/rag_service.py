@@ -4,6 +4,7 @@ from typing import Optional
 
 from indexing.indexer import DocumentIndexer, IndexingRequest
 from vector_store.qdrant_client import QdrantClient
+from rag.rag_pipeline import RAGPipeline
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,10 @@ class RAGServicer:
         self.indexer = DocumentIndexer(
             chunk_size=settings.CHUNK_SIZE,
             chunk_overlap=settings.CHUNK_OVERLAP
+        )
+        self.rag_pipeline = RAGPipeline(
+            ollama_host=settings.OLLAMA_HOST,
+            ollama_port=settings.OLLAMA_PORT
         )
         logger.info("RAGServicer initialized")
     
@@ -94,7 +99,7 @@ class RAGServicer:
     
     async def query_document(self, request) -> dict:
         """
-        Query documents using RAG (placeholder for Iteration 7)
+        Query documents using RAG
         
         Args:
             request: QueryDocumentRequest with query, user_id
@@ -105,12 +110,16 @@ class RAGServicer:
         try:
             logger.info(f"Query received from user {request.user_id}: {request.query}")
             
-            # Placeholder - will be implemented in Iteration 7
+            # Execute RAG query
+            result = self.rag_pipeline.query(request.query, request.user_id)
+            
+            logger.info(f"Query completed successfully")
+            
             return {
-                "answer": "RAG query not yet implemented",
-                "sources": [],
-                "chunk_count": 0,
-                "error_message": "RAG query functionality coming in Iteration 7"
+                "answer": result.answer,
+                "sources": result.sources,
+                "chunk_count": result.chunk_count,
+                "error_message": ""
             }
         except Exception as e:
             logger.error(f"Query failed: {e}")

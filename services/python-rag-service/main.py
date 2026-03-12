@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings, logger
-from routes import health, processing, indexing
+from routes import health, processing, indexing, query
 from vector_store.qdrant_client import QdrantClient
 
 
@@ -43,13 +43,16 @@ def create_app() -> FastAPI:
     app.include_router(health.router, tags=["health"])
     app.include_router(processing.router, prefix="/api", tags=["processing"])
     app.include_router(indexing.router, prefix="/api", tags=["indexing"])
+    app.include_router(query.router, prefix="/api", tags=["query"])
     
     logger.info("DocMind RAG Service initialized", extra={
         "host": settings.SERVER_HOST,
         "port": settings.SERVER_PORT,
         "debug": settings.DEBUG,
         "qdrant_host": settings.QDRANT_HOST,
-        "qdrant_port": settings.QDRANT_PORT
+        "qdrant_port": settings.QDRANT_PORT,
+        "ollama_host": settings.OLLAMA_HOST,
+        "ollama_port": settings.OLLAMA_PORT
     })
     
     return app
