@@ -1,0 +1,12 @@
+# Trivy ignore file for DocMind
+# This file contains CVEs that are either:
+# 1. Not applicable to our use case
+# 2. Already mitigated
+# 3. Low risk for our specific deployment
+
+# Example format:
+# AVD-XXXX-XXXXX
+# Expires: 2026-12-31
+
+# Note: Only ignore vulnerabilities that have been reviewed and deemed acceptable
+# Always prefer updating dependencies to fix vulnerabilities
