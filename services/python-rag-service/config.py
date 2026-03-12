@@ -21,6 +21,15 @@ class Settings(BaseSettings):
     CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 200
     
+    # Qdrant Vector Store
+    QDRANT_HOST: str = "localhost"
+    QDRANT_PORT: int = 6333
+    
+    # Embeddings
+    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    EMBEDDING_DIMENSION: int = 384
+    EMBEDDING_BATCH_SIZE: int = 32
+    
     # Logging
     LOG_LEVEL: str = "INFO"
     
