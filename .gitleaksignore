@@ -1,0 +1,26 @@
+# Gitleaks ignore file for DocMind
+# This file lists specific findings to ignore (by fingerprint or pattern)
+
+# Ignore all findings in example/template files
+.env.example:*
+services/go-user-service/.env.example:*
+services/python-rag-service/.env.example:*
+
+# Ignore documentation files with example credentials
+docs/**
+README.md
+SECURITY.md
+CONTRIBUTING.md
+services/go-user-service/README.md
+services/python-rag-service/README.md
+**/README.md
+
+# Ignore test files with example data
+**/*_test.go
+**/*_test.py
+**/test_*.py
+**/tests/**
+
+# Ignore security documentation
+SECURITY-*.md
+NEXT-STEPS.md

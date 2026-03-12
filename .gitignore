@@ -1,0 +1,225 @@
+# ============================================
+# CRITICAL SECURITY - Never commit these files
+# ============================================
+
+# Environment variables (CRITICAL - Contains passwords, secrets, API keys)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.staging
+.env.test
+!.env.example
+!.env.template
+
+# Backup files that might contain secrets
+*.env.backup
+*.env.bak
+.env.*backup
+
+# Kiro IDE configuration (Contains local development settings)
+.kiro/
+
+# ============================================
+# Python
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.poetry/
+poetry.lock
+pip-log.txt
+pip-delete-this-directory.txt
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# ============================================
+# Go
+# ============================================
+# Binaries
+bin/
+vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# ============================================
+# Docker
+# ============================================
+*.log
+docker-compose.override.yml
+docker-compose.*.override.yml
+
+# ============================================
+# IDE and Editors
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# ============================================
+# OS
+# ============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ============================================
+# WSL artifacts
+# ============================================
+wsl.localhost/
+
+# ============================================
+# Database
+# ============================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# ============================================
+# MinIO data (local development)
+# ============================================
+minio-data/
+.minio/
+.minio.sys/
+
+# ============================================
+# Logs
+# ============================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# ============================================
+# Temporary files
+# ============================================
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.swp
+*~
+
+# ============================================
+# Test coverage
+# ============================================
+coverage/
+*.cover
+.coverage
+htmlcov/
+.nyc_output/
+
+# ============================================
+# Node (if used for tooling)
+# ============================================
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# ============================================
+# Certificates and Keys (CRITICAL)
+# ============================================
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+*.pub
+id_rsa
+id_dsa
+*.ppk
+
+# ============================================
+# Backup files
+# ============================================
+*.bak
+*.backup
+*~
+*.orig
+
+# ============================================
+# Security scan results
+# ============================================
+trivy-results.sarif
+gitleaks-report.json
+security-scan-results/
+
+# ============================================
+# Local configuration overrides
+# ============================================
+config.local.*
+*-local.yml
+*-local.yaml
+*-local.json

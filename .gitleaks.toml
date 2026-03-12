@@ -1,0 +1,52 @@
+# Gitleaks configuration for DocMind
+# This file configures Gitleaks to ignore false positives while maintaining security
+
+title = "DocMind Gitleaks Configuration"
+
+[extend]
+# Use default Gitleaks rules as base
+useDefault = true
+
+[allowlist]
+description = "Allowlist for known false positives"
+
+# Allow example/template files with placeholder values
+paths = [
+    '''\.env\.example$''',
+    '''\.env\.template$''',
+    '''example\.env$''',
+    '''/examples/''',
+    '''/docs/''',
+]
+
+# Allow common placeholder/example values
+regexes = [
+    '''changeme''',
+    '''your-secret-here''',
+    '''your-password-here''',
+    '''example-key''',
+    '''test-secret''',
+    '''dummy-token''',
+    '''placeholder''',
+]
+
+# Allow specific known safe patterns
+[[allowlist.regexes]]
+description = "Ignore placeholder passwords in example files"
+regex = '''changeme_secure_password'''
+
+[[allowlist.regexes]]
+description = "Ignore placeholder JWT secrets in example files"
+regex = '''changeme_use_strong_random_secret_min_32_chars'''
+
+[[allowlist.regexes]]
+description = "Ignore default MinIO admin credentials in example files"
+regex = '''minioadmin'''
+
+[[allowlist.regexes]]
+description = "Ignore example database names"
+regex = '''POSTGRES_(USER|DB)=docmind'''
+
+[[allowlist.regexes]]
+description = "Ignore localhost/development URLs"
+regex = '''(localhost|127\.0\.0\.1|0\.0\.0\.0)'''

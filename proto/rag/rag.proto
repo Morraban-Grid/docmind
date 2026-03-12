@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package rag;
+
+option go_package = "proto/rag/gen/go/ragpb";
+
+service RAGService {
+    rpc IndexDocument (IndexDocumentRequest) returns (IndexDocumentResponse);
+    rpc QueryDocument (QueryDocumentRequest) returns (QueryDocumentResponse);
+}
+
+message IndexDocumentRequest{
+    string document_id = 1;
+    string user_id = 2;
+    string file_path = 3;
+    string content_type = 4;
+}
+
+message IndexDocumentResponse{
+    bool success = 1;
+    string message = 2;
+}
+
+message QueryDocumentRequest{
+    string user_id = 1;
+    string query = 2;
+    int32 top_k = 3;
+}
+
+message QueryDocumentResponse{
+    string answer = 1;
+    repeated RetrievedChunk sources = 2;
+}
+
+message RetrievedChunk{
+    string document_id = 1;
+    string content = 2;
+    float score = 3;
+}
