@@ -9,6 +9,8 @@ Go microservice responsible for user management, authentication, document upload
 - MinIO integration for file storage
 - PostgreSQL for metadata storage
 - gRPC client for Python RAG service communication
+- Comprehensive error handling and logging
+- Document access control and pagination
 
 ## Development
 
@@ -17,6 +19,7 @@ Go microservice responsible for user management, authentication, document upload
 - Go 1.21+
 - PostgreSQL 16+
 - MinIO
+- Docker & Docker Compose (for running services)
 
 ### Setup
 
@@ -43,207 +46,396 @@ Required environment variables:
 - `DATABASE_URL`: PostgreSQL connection string
 - `JWT_SECRET`: Secret key for JWT token signing (minimum 32 characters)
 - `MINIO_ENDPOINT`: MinIO server endpoint
-- `MINIO_ACCESS_KEY`: MinIO access key
-- `MINIO_SECRET_KEY`: MinIO secret key
+- `MINIO_ROOT_USER`: MinIO root user
+- `MINIO_ROOT_PASSWORD`: MinIO root password
+- `MINIO_BUCKET`: MinIO bucket name
 - `GO_SERVICE_PORT`: Server port (default: 8080)
 
 ## API Endpoints
 
-### Authentication
+### Health Check
 
-#### Register User
-```bash
-POST /api/auth/register
-Content-Type: application/json
+#### GET /health
+Returns the health status of the service.
 
+**Response:**
+```json
 {
-  "email": "user@example.com",
-  "password": "securepassword123",
-  "name": "John Doe"
+  "status": "healthy",
+  "service": "docmind-go-service"
 }
-
-# Response (201 Created)
-{
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "email": "user@example.com",
-  "name": "John Doe",
-  "created_at": "2024-01-01T12:00:00Z",
-  "updated_at": "2024-01-01T12:00:00Z"
-}
-
-# Example with curl
-curl -X POST http://localhost:8080/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"securepassword123","name":"John Doe"}'
 ```
 
-**Validation Rules:**
-- Email must be valid format
-- Password must be at least 8 characters
-- Email must be unique (returns 409 if already exists)
+### Authentication
 
-#### Login
-```bash
-POST /api/auth/login
-Content-Type: application/json
+#### POST /api/auth/register
+Register a new user.
 
+**Request:**
+```json
 {
   "email": "user@example.com",
   "password": "securepassword123"
 }
+```
 
-# Response (200 OK)
+**Response (201 Created):**
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "user@example.com",
+  "created_at": "2026-03-11T12:00:00Z",
+  "updated_at": "2026-03-11T12:00:00Z"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid email or password format
+- `409 Conflict`: Email already registered
+
+**Example with curl:**
+```bash
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"securepassword123"}'
+```
+
+#### POST /api/auth/login
+Authenticate a user and receive JWT token.
+
+**Request:**
+```json
+{
+  "email": "user@example.com",
+  "password": "securepassword123"
+}
+```
+
+**Response (200 OK):**
+```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "user_id": "550e8400-e29b-41d4-a716-446655440000",
     "email": "user@example.com",
-    "name": "John Doe",
-    "created_at": "2024-01-01T12:00:00Z",
-    "updated_at": "2024-01-01T12:00:00Z"
+    "created_at": "2026-03-11T12:00:00Z",
+    "updated_at": "2026-03-11T12:00:00Z"
   }
 }
+```
 
-# Example with curl
+**Error Responses:**
+- `400 Bad Request`: Invalid request format
+- `401 Unauthorized`: Invalid credentials
+
+**Example with curl:**
+```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"user@example.com","password":"securepassword123"}'
 ```
 
-**Authentication:**
-- Returns JWT token valid for 24 hours
-- Token must be included in Authorization header for protected endpoints
-- Format: `Authorization: Bearer <token>`
-
 ### User Management
 
-All user endpoints require authentication via JWT token.
-
-#### Get Current User
-```bash
-GET /api/users/me
+All user endpoints require authentication. Include the JWT token in the Authorization header:
+```
 Authorization: Bearer <token>
+```
 
-# Response (200 OK)
+#### GET /api/users/me
+Get the current authenticated user's profile.
+
+**Response (200 OK):**
+```json
 {
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
   "email": "user@example.com",
-  "name": "John Doe",
-  "created_at": "2024-01-01T12:00:00Z",
-  "updated_at": "2024-01-01T12:00:00Z"
+  "created_at": "2026-03-11T12:00:00Z",
+  "updated_at": "2026-03-11T12:00:00Z"
 }
+```
 
-# Example with curl
+**Example with curl:**
+```bash
 curl -X GET http://localhost:8080/api/users/me \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+  -H "Authorization: Bearer <token>"
 ```
 
-#### Update Current User
-```bash
-PUT /api/users/me
-Authorization: Bearer <token>
-Content-Type: application/json
+#### PUT /api/users/me
+Update the current user's profile.
 
+**Request:**
+```json
 {
-  "name": "Jane Doe"
+  "email": "newemail@example.com"
 }
+```
 
-# Response (200 OK)
+**Response (200 OK):**
+```json
 {
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "email": "user@example.com",
-  "name": "Jane Doe",
-  "created_at": "2024-01-01T12:00:00Z",
-  "updated_at": "2024-01-01T12:30:00Z"
+  "email": "newemail@example.com",
+  "created_at": "2026-03-11T12:00:00Z",
+  "updated_at": "2026-03-11T12:00:00Z"
 }
-
-# Example with curl
-curl -X PUT http://localhost:8080/api/users/me \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Jane Doe"}'
 ```
 
-#### Delete Current User
+**Example with curl:**
 ```bash
-DELETE /api/users/me
-Authorization: Bearer <token>
+curl -X PUT http://localhost:8080/api/users/me \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"newemail@example.com"}'
+```
 
-# Response (200 OK)
+#### DELETE /api/users/me
+Delete the current user account.
+
+**Response (200 OK):**
+```json
 {
   "message": "User deleted successfully"
 }
-
-# Example with curl
-curl -X DELETE http://localhost:8080/api/users/me \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
-## Error Responses
+**Example with curl:**
+```bash
+curl -X DELETE http://localhost:8080/api/users/me \
+  -H "Authorization: Bearer <token>"
+```
 
-All errors follow a standardized JSON format:
+### Document Management
 
+All document endpoints require authentication.
+
+#### POST /api/documents
+Upload a new document.
+
+**Request:**
+- Content-Type: multipart/form-data
+- Field name: `file`
+- Supported formats: PDF, TXT, DOCX, MD
+- Maximum file size: 10MB
+
+**Response (201 Created):**
 ```json
 {
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human-readable error message",
-    "details": {}
-  }
+  "document_id": "660e8400-e29b-41d4-a716-446655440001",
+  "filename": "document.pdf",
+  "file_size": 1024000,
+  "mime_type": "application/pdf",
+  "status": "pending_indexing",
+  "storage_path": "docmind-documents/550e8400-e29b-41d4-a716-446655440000/660e8400-e29b-41d4-a716-446655440001/document.pdf",
+  "upload_date": "2026-03-11T12:00:00Z"
 }
 ```
 
-### Common Error Codes
+**Error Responses:**
+- `400 Bad Request`: Invalid file type or size exceeds limit
+- `401 Unauthorized`: Missing or invalid token
+- `500 Internal Server Error`: Storage error
 
-- `VALIDATION_ERROR` (400): Invalid input data
-- `INVALID_CREDENTIALS` (401): Authentication failed
-- `TOKEN_MISSING` (401): No authorization header provided
-- `TOKEN_INVALID` (401): Invalid or expired JWT token
-- `ACCESS_DENIED` (403): User lacks permission for resource
-- `NOT_FOUND` (404): Resource not found
-- `EMAIL_ALREADY_EXISTS` (409): Email already registered
-- `INTERNAL_ERROR` (500): Server error
-
-## Security
-
-- Passwords are hashed using bcrypt with cost factor 12
-- JWT tokens use HS256 algorithm
-- All passwords are validated (minimum 8 characters)
-- Email addresses are validated and normalized
-- SQL injection prevention via prepared statements
-- Password hashes are never returned in API responses
-
-## Testing
-
+**Example with curl:**
 ```bash
-# Run all tests
-go test ./...
-
-# Run with coverage
-go test -cover ./...
-
-# Run specific test
-go test ./internal/service -v
+curl -X POST http://localhost:8080/api/documents \
+  -H "Authorization: Bearer <token>" \
+  -F "file=@document.pdf"
 ```
+
+#### GET /api/documents
+List all documents for the authenticated user with pagination.
+
+**Query Parameters:**
+- `page` (optional, default: 1): Page number
+- `page_size` (optional, default: 20): Items per page (max: 100)
+
+**Response (200 OK):**
+```json
+{
+  "documents": [
+    {
+      "document_id": "660e8400-e29b-41d4-a716-446655440001",
+      "filename": "document.pdf",
+      "file_size": 1024000,
+      "mime_type": "application/pdf",
+      "status": "pending_indexing",
+      "storage_path": "docmind-documents/550e8400-e29b-41d4-a716-446655440000/660e8400-e29b-41d4-a716-446655440001/document.pdf",
+      "upload_date": "2026-03-11T12:00:00Z"
+    }
+  ],
+  "total_items": 1,
+  "total_pages": 1,
+  "current_page": 1,
+  "page_size": 20
+}
+```
+
+**Example with curl:**
+```bash
+curl -X GET "http://localhost:8080/api/documents?page=1&page_size=20" \
+  -H "Authorization: Bearer <token>"
+```
+
+#### GET /api/documents/{id}
+Get metadata for a specific document.
+
+**Response (200 OK):**
+```json
+{
+  "document_id": "660e8400-e29b-41d4-a716-446655440001",
+  "filename": "document.pdf",
+  "file_size": 1024000,
+  "mime_type": "application/pdf",
+  "status": "pending_indexing",
+  "storage_path": "docmind-documents/550e8400-e29b-41d4-a716-446655440000/660e8400-e29b-41d4-a716-446655440001/document.pdf",
+  "upload_date": "2026-03-11T12:00:00Z"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid document ID format
+- `403 Forbidden`: Document belongs to another user
+- `404 Not Found`: Document not found
+
+**Example with curl:**
+```bash
+curl -X GET http://localhost:8080/api/documents/660e8400-e29b-41d4-a716-446655440001 \
+  -H "Authorization: Bearer <token>"
+```
+
+#### GET /api/documents/{id}/download
+Download a document file.
+
+**Response (200 OK):**
+- Returns the file with appropriate Content-Type header
+- Content-Disposition header set for download
+
+**Error Responses:**
+- `400 Bad Request`: Invalid document ID format
+- `403 Forbidden`: Document belongs to another user
+- `404 Not Found`: Document not found
+
+**Example with curl:**
+```bash
+curl -X GET http://localhost:8080/api/documents/660e8400-e29b-41d4-a716-446655440001/download \
+  -H "Authorization: Bearer <token>" \
+  -o document.pdf
+```
+
+#### DELETE /api/documents/{id}
+Delete a document and its associated file.
+
+**Response (200 OK):**
+```json
+{
+  "message": "Document deleted successfully"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid document ID format
+- `403 Forbidden`: Document belongs to another user
+- `404 Not Found`: Document not found
+
+**Example with curl:**
+```bash
+curl -X DELETE http://localhost:8080/api/documents/660e8400-e29b-41d4-a716-446655440001 \
+  -H "Authorization: Bearer <token>"
+```
+
+## Error Handling
+
+All error responses follow this format:
+
+```json
+{
+  "error": "Error message describing what went wrong"
+}
+```
+
+Common HTTP status codes:
+- `200 OK`: Successful request
+- `201 Created`: Resource created successfully
+- `400 Bad Request`: Invalid request format or validation error
+- `401 Unauthorized`: Missing or invalid authentication token
+- `403 Forbidden`: Access denied (e.g., accessing another user's document)
+- `404 Not Found`: Resource not found
+- `409 Conflict`: Resource already exists (e.g., duplicate email)
+- `500 Internal Server Error`: Server error
 
 ## Logging
 
-The service uses structured logging (log/slog) with JSON output to stdout.
-
-Log entries include:
+The service uses structured logging with the following information:
 - Timestamp
-- Log level (INFO, WARN, ERROR)
-- User ID (when applicable)
-- Request context
-- Error details
+- Log level (INFO, ERROR, WARNING)
+- Message
+- Context (user_id, document_id, etc.)
 
-Example log entry:
-```json
-{
-  "time": "2024-01-01T12:00:00Z",
-  "level": "INFO",
-  "msg": "user created",
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "email": "user@example.com"
-}
+All logs are written to stdout.
+
+## Testing
+
+Run tests with:
+```bash
+go test ./...
 ```
+
+Run tests with coverage:
+```bash
+go test -cover ./...
+```
+
+## Project Structure
+
+```
+services/go-user-service/
+├── cmd/
+│   └── server/
+│       └── main.go              # Application entry point
+├── internal/
+│   ├── config/
+│   │   └── config.go            # Configuration management
+│   ├── domain/
+│   │   ├── user.go              # User domain model
+│   │   ├── document.go          # Document domain model
+│   │   └── errors.go            # Custom error types
+│   ├── handler/
+│   │   └── http/
+│   │       ├── auth_handler.go  # Authentication endpoints
+│   │       ├── user_handler.go  # User management endpoints
+│   │       ├── document_handler.go # Document endpoints
+│   │       └── health_handler.go   # Health check endpoint
+│   ├── infrastructure/
+│   │   ├── db.go                # Database initialization
+│   │   ├── jwt.go               # JWT token management
+│   │   ├── logger.go            # Logging setup
+│   │   └── minio.go             # MinIO client wrapper
+│   ├── middleware/
+│   │   ├── auth_middleware.go   # JWT authentication
+│   │   ├── logging.go           # Request logging
+│   │   └── recovery.go          # Panic recovery
+│   ├── repository/
+│   │   ├── postgres/
+│   │   │   ├── user_postgres.go # User repository
+│   │   │   └── document_postgres.go # Document repository
+│   │   ├── user_repository.go   # User repository interface
+│   │   └── document_repository.go # Document repository interface
+│   └── service/
+│       ├── auth_service.go      # Authentication logic
+│       ├── user_service.go      # User management logic
+│       └── document_service.go  # Document management logic
+├── migrations/
+│   ├── 001_create_users_table.sql
+│   ├── 002_create_documents_table.sql
+│   └── 003_create_documents_table.sql
+├── go.mod                       # Go module definition
+├── go.sum                       # Go module checksums
+├── Dockerfile                   # Docker image definition
+├── Makefile                     # Build and development commands
+└── README.md                    # This file
+```
+
+## License
+
+MIT License - See LICENSE file in project root

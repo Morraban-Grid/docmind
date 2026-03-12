@@ -4,12 +4,12 @@ import (
 	"log"
 	"os"
 
-	"github.com/docmind/go-user-service/internal/config"
-	"github.com/docmind/go-user-service/internal/handler"
-	"github.com/docmind/go-user-service/internal/infrastructure"
-	"github.com/docmind/go-user-service/internal/middleware"
-	"github.com/docmind/go-user-service/internal/repository"
-	"github.com/docmind/go-user-service/internal/service"
+	"github.com/Morraban-Grid/docmind/services/go-user-service/internal/config"
+	httphandler "github.com/Morraban-Grid/docmind/services/go-user-service/internal/handler/http"
+	"github.com/Morraban-Grid/docmind/services/go-user-service/internal/infrastructure"
+	"github.com/Morraban-Grid/docmind/services/go-user-service/internal/middleware"
+	"github.com/Morraban-Grid/docmind/services/go-user-service/internal/repository/postgres"
+	"github.com/Morraban-Grid/docmind/services/go-user-service/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -30,8 +30,21 @@ func main() {
 	}
 	defer db.Close()
 
+	// Initialize MinIO client
+	minioClient, err := infrastructure.NewMinIOClient(
+		os.Getenv("MINIO_ENDPOINT"),
+		os.Getenv("MINIO_ROOT_USER"),
+		os.Getenv("MINIO_ROOT_PASSWORD"),
+		os.Getenv("MINIO_BUCKET"),
+		os.Getenv("MINIO_USE_SSL") == "true",
+	)
+	if err != nil {
+		log.Fatalf("Failed to initialize MinIO client: %v", err)
+	}
+
 	// Initialize repositories
-	userRepo := repository.NewPostgresUserRepository(db)
+	userRepo := postgres.NewUserRepository(db)
+	documentRepo := postgres.NewDocumentRepository(db)
 
 	// Initialize JWT manager
 	jwtManager := infrastructure.NewJWTManager(cfg.JWTSecret)
@@ -39,22 +52,23 @@ func main() {
 	// Initialize services
 	authService := service.NewAuthService(userRepo, jwtManager)
 	userService := service.NewUserService(userRepo)
+	documentService := service.NewDocumentService(documentRepo, minioClient)
 
 	// Initialize handlers
-	authHandler := handler.NewAuthHandler(authService)
-	userHandler := handler.NewUserHandler(userService)
+	authHandler := httphandler.NewAuthHandler(authService)
+	userHandler := httphandler.NewUserHandler(userService)
+	documentHandler := httphandler.NewDocumentHandler(documentService)
+	healthHandler := httphandler.NewHealthHandler()
 
 	// Setup router
 	router := gin.Default()
 
 	// Add middleware
 	router.Use(middleware.RecoveryMiddleware())
-	router.Use(middleware.ErrorHandler())
+	router.Use(middleware.LoggingMiddleware())
 
 	// Health check endpoint
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "healthy"})
-	})
+	router.GET("/health", healthHandler.Health)
 
 	// Public routes
 	auth := router.Group("/api/auth")
@@ -72,9 +86,26 @@ func main() {
 		users.DELETE("/me", userHandler.DeleteMe)
 	}
 
+	// Document routes (protected)
+	documents := router.Group("/api/documents")
+	documents.Use(middleware.AuthMiddleware(jwtManager))
+	{
+		documents.POST("", documentHandler.UploadDocument)
+		documents.GET("", documentHandler.ListDocuments)
+		documents.GET("/:id", documentHandler.GetDocument)
+		documents.GET("/:id/download", documentHandler.DownloadDocument)
+		documents.DELETE("/:id", documentHandler.DeleteDocument)
+	}
+
 	// Start server
 	port := cfg.ServerPort
-	infrastructure.Logger.Info("Starting DocMind Go Service", "port", port)
+	if port == "" {
+		port = "8080"
+	}
+
+	infrastructure.LogInfo("Starting DocMind Go Service", map[string]interface{}{
+		"port": port,
+	})
 
 	if err := router.Run(":" + port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
